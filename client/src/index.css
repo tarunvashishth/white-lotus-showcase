@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Cormorant Garamond", Georgia, serif;
+  --color-ink: #1f2421;
+  --color-lotus: #7a5c2e;
+  --color-lotus-dark: #5b4322;
+  --color-sand: #f7f4ee;
+}
+
+body {
+  @apply bg-sand text-ink font-sans antialiased;
+}
