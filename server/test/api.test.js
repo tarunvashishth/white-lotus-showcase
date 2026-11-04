@@ -69,8 +69,9 @@ test('create: invalid price returns 400 with fields.price and stores nothing', a
     assert.equal(r.status, 400);
     assert.ok(r.json.fields.price, `price=${price} should have a field error`);
   }
-  const empty = await api('/api/properties', { method: 'POST', auth: true, body: prop({ name: '  ' }) });
+  const empty = await api('/api/properties', { method: 'POST', auth: true, body: prop({ name: '  ', bedrooms: '' }) });
   assert.ok(empty.json.fields.name);
+  assert.ok(empty.json.fields.bedrooms, 'blank bedrooms must not silently become 0');
   assert.equal((await pool.query('SELECT count(*)::int AS n FROM properties')).rows[0].n, 0);
 });
 
