@@ -1,5 +1,5 @@
-// Integration tests against a real Postgres database (default: whitelotus_test, created on demand).
-// Run: npm test
+// Integration tests. They run against a separate Postgres database (whitelotus_test),
+// created on first run, so dev data is never touched.
 import { test, before, after, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
 import pg from 'pg';
@@ -55,14 +55,12 @@ after(async () => {
   await appPool.end();
 });
 
-// protects=only admins can mutate; fails_when=a missing/wrong token is accepted; no_claim=token expiry
 test('auth: wrong password is rejected and writes require a token', async () => {
   assert.equal((await api('/api/auth/login', { method: 'POST', body: { password: 'nope' } })).status, 401);
   assert.equal((await api('/api/properties', { method: 'POST', body: prop() })).status, 401);
   assert.equal((await api('/api/inquiries')).status, 401);
 });
 
-// protects=server-side price validation; fails_when=0/negative/non-numeric price inserts a row; no_claim=client UI checks
 test('create: invalid price returns 400 with fields.price and stores nothing', async () => {
   for (const price of [0, -5, 'abc']) {
     const r = await api('/api/properties', { method: 'POST', auth: true, body: prop({ price }) });
@@ -75,7 +73,6 @@ test('create: invalid price returns 400 with fields.price and stores nothing', a
   assert.equal((await pool.query('SELECT count(*)::int AS n FROM properties')).rows[0].n, 0);
 });
 
-// protects=full CRUD lifecycle; fails_when=update/delete hit wrong row or leave it behind; no_claim=concurrency
 test('CRUD: create, read, update, delete, then 404', async () => {
   const created = await api('/api/properties', { method: 'POST', auth: true, body: prop() });
   assert.equal(created.status, 201);
@@ -92,7 +89,6 @@ test('CRUD: create, read, update, delete, then 404', async () => {
   assert.equal((await api('/api/properties/abc')).status, 404);
 });
 
-// protects=filter + sort contract (spec AC1); fails_when=wrong rows or order; no_claim=large-data performance
 test('list: bedrooms>=4 with price_asc, location and search filters', async () => {
   const add = (o) => api('/api/properties', { method: 'POST', auth: true, body: prop(o) });
   await add({ name: 'A', bedrooms: 5, price: 300 });
@@ -108,7 +104,6 @@ test('list: bedrooms>=4 with price_asc, location and search filters', async () =
   assert.deepEqual((await api('/api/properties/locations')).json, ['Hebbal', 'Indiranagar']);
 });
 
-// protects=inquiry capture + admin visibility (spec AC4/5/6); fails_when=bad data stored or linked to wrong property; no_claim=email delivery
 test('inquiries: valid is stored and listed with property name; invalid is rejected', async () => {
   const { json: p } = await api('/api/properties', { method: 'POST', auth: true, body: prop({ name: 'Linked Villa' }) });
   const ok = await api(`/api/properties/${p.id}/inquiries`, {
@@ -126,7 +121,6 @@ test('inquiries: valid is stored and listed with property name; invalid is rejec
   assert.equal(list.json[0].property_name, 'Linked Villa');
 });
 
-// protects=cascade delete (spec AC3); fails_when=orphaned inquiries remain or FK blocks delete; no_claim=soft-delete
 test('delete property cascades to its inquiries', async () => {
   const { json: p } = await api('/api/properties', { method: 'POST', auth: true, body: prop() });
   await api(`/api/properties/${p.id}/inquiries`, {

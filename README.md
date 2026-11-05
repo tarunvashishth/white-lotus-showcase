@@ -1,71 +1,60 @@
-# White Lotus: Property Showcase & Inquiry Manager
+# Property Showcase & Inquiry Manager
 
-A small full-stack tool for a luxury-real-estate sales team: buyers browse and filter properties and send inquiries; the sales team (admin) manages listings and reads inquiries in a dashboard.
+Internal tool for White Lotus Group's sales team. Buyers browse and filter luxury properties and send inquiries. Admins add, edit and delete listings and read the inquiries.
 
-**Stack:** React (Vite) + Tailwind v4 · Node/Express · PostgreSQL. No ORM, plain SQL via `pg`.
-The build was driven by [SPEC.md](SPEC.md), which lists the decisions, API, acceptance criteria and scope.
+Stack: React (Vite) + Tailwind, Node/Express, PostgreSQL (plain SQL via `pg`).
 
-## Run it locally
+## Setup
 
-Prerequisites: Node 20+, PostgreSQL running locally.
+Needs Node 20+ and a local PostgreSQL.
 
 ```bash
-# 1. database
 createdb whitelotus
 
-# 2. backend (terminal 1)
+# backend, terminal 1
 cd server
-cp .env.example .env        # adjust DATABASE_URL / ADMIN_PASSWORD if needed
+cp .env.example .env
 npm install
-npm run migrate             # applies db/schema.sql (idempotent)
-npm run seed                # 8 demo properties + 2 inquiries (resets data)
-npm run dev                 # http://localhost:4000
+npm run migrate    # applies db/schema.sql
+npm run seed       # demo data (replaces existing rows)
+npm run dev        # http://localhost:4000
 
-# 3. frontend (terminal 2)
+# frontend, terminal 2
 cd client
 npm install
-npm run dev                 # http://localhost:5173 (proxies /api to :4000)
+npm run dev        # http://localhost:5173, proxies /api to :4000
 ```
 
-- Public site: <http://localhost:5173>
-- Admin: <http://localhost:5173/admin>, password is `ADMIN_PASSWORD` from `server/.env` (default `changeme`).
+Admin is at `/admin`. The password is `ADMIN_PASSWORD` in `server/.env` (`changeme` by default).
 
-### Tests
+Tests: `cd server && npm test`. They use a separate `whitelotus_test` database, created on first run (override with `TEST_DATABASE_URL`).
 
-```bash
-cd server && npm test
-```
-
-Integration tests run against a real Postgres database, `whitelotus_test`, which they create on demand (override with `TEST_DATABASE_URL`). Your dev data is untouched. Each test carries a `protects / fails_when / no_claim` comment.
-
-## Features
-
-- **Listings:** card grid, search, location, min bedrooms, price range (₹ Cr), sort. Filters live in the URL, so a filtered view is shareable. Loading skeletons, empty and error states.
-- **Detail page:** gallery, specs, description, and an inquiry form (name, email, phone, message) with inline server-side validation messages and a success state.
-- **Admin:** password login; properties table with add / edit / delete (confirmation); inquiries table showing which property each relates to.
-- **Validation:** one rule set (zod) enforced on the server, mirrored by DB `CHECK` constraints. The UI renders the server's per-field messages.
-
-## API summary
+## API
 
 | Method | Path | Auth |
 |---|---|---|
-| GET | `/api/properties` (`location, bedrooms, minPrice, maxPrice, q, sort`) | – |
-| GET | `/api/properties/locations`, `/api/properties/:id` | – |
-| POST / PUT / DELETE | `/api/properties`, `/api/properties/:id` | admin |
-| POST | `/api/properties/:id/inquiries` | – |
+| GET | `/api/properties?location&bedrooms&minPrice&maxPrice&q&sort` | no |
+| GET | `/api/properties/locations`, `/api/properties/:id` | no |
+| POST | `/api/properties` | admin |
+| PUT, DELETE | `/api/properties/:id` | admin |
+| POST | `/api/properties/:id/inquiries` | no |
 | GET | `/api/inquiries` | admin |
-| POST | `/api/auth/login` | – |
+| POST | `/api/auth/login` | no |
 
-Errors are `{ "error": "...", "fields": { "price": "..." } }`. Schema: [server/db/schema.sql](server/db/schema.sql).
+Errors look like `{ "error": "...", "fields": { "price": "..." } }`. The schema is in `server/db/schema.sql`. The plan this was built from is in `SPEC.md`.
 
-## Architecture and trade-offs
+## Design decisions
 
-The backend is a thin Express API with zod validation at the edge and parameterised SQL (sort keys are whitelisted, never interpolated), and the database `CHECK` constraints are a second line of defence. Filtering and sorting happen server-side so the API is useful beyond this one UI. Admin auth is a single shared password that returns a short-lived JWT: it keeps the write endpoints and the inquiry data protected without building user management, but it is not real identity (no per-user audit trail, no rate limiting, the token sits in `localStorage`). Prices are stored as whole rupees in a `BIGINT` and formatted as ₹ Cr / ₹ L in the UI. Images are URLs rather than uploads, to stay inside the time limit. The client is deliberately light: React Router, a small `useFetch` hook, and Tailwind, with no state library.
+Validation lives on the server (zod) and the database `CHECK` constraints back it up; the forms show the server's per-field messages. Filtering and sorting are query parameters handled in SQL, and the listing page keeps them in the URL so a filtered view can be shared. Sort keys are looked up from a fixed map, never put into the query.
 
-## What I'd do next
+Admin auth is one shared password that returns an 8-hour JWT. It protects the write endpoints and the inquiry list without building user accounts. The cost is no per-user identity, no rate limiting on login, and the token lives in `localStorage`.
 
-- Real admin accounts (hashed passwords, roles, login rate limiting) and httpOnly-cookie sessions.
-- Image upload to object storage; pagination or infinite scroll for large catalogues.
-- Inquiry workflow: status (new / contacted / closed), assignment, notes, email notification to sales, spam protection (honeypot / CAPTCHA).
-- Component and end-to-end tests (Playwright) for the UI, and CI running lint + tests.
-- Deployment (for example Render for API + Postgres, Vercel for the client), with the API URL configurable via env.
+Prices are whole rupees in a `BIGINT`, shown as ₹ Cr / ₹ L. Images are URLs, not uploads.
+
+## With more time
+
+- Real admin accounts, login rate limiting, cookie sessions
+- Image uploads, pagination
+- Inquiry status and notes, email notification, spam protection
+- Frontend and end-to-end tests, CI
+- Deployment
