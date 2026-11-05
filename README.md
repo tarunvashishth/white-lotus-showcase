@@ -4,6 +4,8 @@ Internal tool for White Lotus Group's sales team. Buyers browse and filter luxur
 
 Stack: React (Vite) + Tailwind, Node/Express, PostgreSQL (plain SQL via `pg`).
 
+Live: https://white-lotus-showcase.netlify.app (admin at `/admin`)
+
 ## Setup
 
 Needs Node 20+ and a local PostgreSQL.
@@ -28,6 +30,10 @@ npm run dev        # http://localhost:5173, proxies /api to :4000
 Admin is at `/admin`. The password is `ADMIN_PASSWORD` in `server/.env` (`changeme` by default).
 
 Tests: `cd server && npm test`. They use a separate `whitelotus_test` database, created on first run (override with `TEST_DATABASE_URL`).
+
+## Deployment
+
+Netlify serves the built React app and runs the Express API as a single serverless function (`netlify/functions/api.mjs`, wired up in `netlify.toml`). The database is Postgres on Supabase, reached through its connection pooler. Set `DATABASE_URL`, `ADMIN_PASSWORD` and `JWT_SECRET` as Netlify environment variables. In production the API refuses to log anyone in if the last two are missing. Apply `server/db/schema.sql` to the database first. If the database is on Supabase, enable row-level security on both tables and connect with a dedicated role.
 
 ## API
 
