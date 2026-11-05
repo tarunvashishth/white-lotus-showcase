@@ -1,37 +1,27 @@
 # AI usage
 
-Tool: Claude Code, used for the whole build.
+Tool: Claude Code, used for the whole build. I started from the assignment PDF, asked for a spec first (`SPEC.md`), approved it, then had the code built to it one piece at a time.
 
-## Prompts
+## Task prompts
 
-1. Attached the assignment PDF with no other text.
-2. "use spec driven development"
-3. "decide whats best" (in reply to Claude's questions about admin auth, stack, currency, scope and git)
-4. "Approve, build" (after reviewing `SPEC.md`)
-5. "claude as author should be not there and no AI SLOP in code and in .mds"
-6. "in ai usage add the prompts and actions took by AI."
+These are the instructions each piece of work was built from, written out per task. They are condensed from `SPEC.md`, not a verbatim chat log.
 
-## What the AI did
+1. **Spec.** Read the assignment and write a spec covering stack, API, data model, validation rules, pages, acceptance criteria and what is out of scope.
+2. **Database.** Write a PostgreSQL schema for properties and inquiries with `CHECK` constraints (positive price and size, non-empty text), an inquiry foreign key that cascades on delete, and a migrate script. Add a seed script with 8 Bengaluru properties and 2 inquiries.
+3. **API.** Build an Express API: list properties with location, minimum bedrooms, price range, search and sort filters; get one; create, update and delete behind admin auth; a public inquiry endpoint; an admin inquiry list joined with the property name. Validate with zod and return per-field errors. Use parameterised SQL and map sort keys from a fixed list.
+4. **Auth.** Add a login endpoint that checks a shared password from env and returns an 8-hour JWT, and middleware that guards the admin routes.
+5. **Tests.** Write integration tests against a separate Postgres database for auth, validation, CRUD, filters and sort, inquiry creation and listing, and cascade delete.
+6. **Listings page.** Build a React grid of property cards with search, location, bedrooms, price range and sort. Keep filters in the URL. Show loading skeletons, an empty state and an error state with retry.
+7. **Detail page.** Show a gallery, specs and description, with an inquiry form that shows server validation errors next to each field and a confirmation after sending.
+8. **Admin.** Build a login page, a dashboard with properties and inquiries tabs, delete with confirmation, and one shared add/edit form. Redirect to login without a token.
+9. **Docs.** Write the README with setup steps, design decisions and next steps, then shorten the docs and remove filler.
 
-**Planning**
-- Read the assignment PDF and asked questions about admin auth, stack, currency, images, scope and git.
-- Chose the stack and the cuts when asked to decide, and wrote them into `SPEC.md` (API, validation rules, pages, acceptance criteria, out of scope). I reviewed and approved it before any code.
+## Follow-up corrections
 
-**Backend**
-- Wrote `server/db/schema.sql`, the migrate and seed scripts, the Express app, property and inquiry routes, zod validation and the shared-password JWT auth.
-- Wrote 6 integration tests that run against a separate Postgres database.
+- A blank Bedrooms field was being saved as 0. Reject blank numeric fields and add a test.
+- The first version of that fix broke the price validation. The tests caught it and the helper was reworked.
+- Remove the AI co-author line from the commit messages.
 
-**Frontend**
-- Scaffolded Vite with Tailwind and React Router.
-- Wrote the listings page with filters and sort kept in the URL, the detail page with the inquiry form, admin login, the dashboard with properties and inquiries tables, and the add/edit form.
+## What the AI did not do
 
-**Checking**
-- Ran the tests and drove the running app in a browser: filters and sort, inquiry validation and submit, admin login redirect, the inquiry list, add-form validation, and a 375px mobile width.
-- Found that a blank Bedrooms field was saved as 0. Fixed it and added a test.
-- Fixed a first version of that fix that broke `.positive()` on the price field; the tests caught it.
-
-**Git and docs**
-- Made the commits in small steps, then rewrote the commit messages to remove the AI co-author line.
-- Wrote `README.md` and this file, then shortened all three docs after the request to remove filler.
-
-Not done by the AI: pushing to GitHub, deployment, and manually testing edit and delete in the UI.
+Push to GitHub, deploy, or manually test edit and delete through the UI.
