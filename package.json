@@ -1,0 +1,8 @@
+{
+  "name": "white-lotus-showcase",
+  "private": true,
+  "description": "Root manifest so the Netlify function wrapper can resolve its own dependency.",
+  "dependencies": {
+    "serverless-http": "^4.0.0"
+  }
+}
